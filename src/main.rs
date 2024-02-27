@@ -1,5 +1,8 @@
-use actix_web::{get, web, HttpServer, Responder};
+mod controllers;
+
+use actix_web::{web, HttpServer};
 use color_eyre::eyre::Result;
+use controllers::controllers::{counter_handler, index};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Mutex};
@@ -46,47 +49,6 @@ impl AppState {
     }
 }
 
-#[get("/")]
-async fn index(state: actix_web::web::Data<AppState>) -> impl Responder {
-    let mut ctx = tera::Context::new();
-    ctx.insert("counter", &*state.counter.lock().unwrap());
-
-    let rendered = TEMPLATES.render("index.html", &ctx).unwrap();
-
-    actix_web::HttpResponse::Ok().body(rendered)
-}
-
-#[get("/counter/{id}/{action}")]
-async fn counter_handler(
-    action: actix_web::web::Path<(String, String)>,
-    state: actix_web::web::Data<AppState>,
-) -> impl Responder {
-    let (id, action) = action.into_inner();
-
-    let mut ctx = tera::Context::new();
-
-    match action.as_str() {
-        "increment" => {
-            state.increment(&id);
-        }
-        "decrement" => {
-            state.decrement(&id);
-        }
-        _ => {
-            return actix_web::HttpResponse::BadRequest().body("Invalid action");
-        }
-    }
-
-    let counter = state.counter.lock().unwrap();
-    let count = counter.get(&id).unwrap_or(&0);
-    ctx.insert("count", count);
-    ctx.insert("id", &id);
-
-    let rendered = TEMPLATES.render("counter.html", &ctx).unwrap();
-
-    actix_web::HttpResponse::Ok().body(rendered)
-}
-
 lazy_static! {
     static ref DEFAULT_COUNTERS: Vec<(String, i32)> =
         vec![("c1".to_string(), 0), ("c2".to_string(), 10)];
@@ -100,14 +62,22 @@ async fn main() -> Result<()> {
         actix_web::App::new()
             // register state
             .app_data(web::Data::new(AppState {
-                counter: Mutex::new(DEFAULT_COUNTERS.clone().into_iter().collect()),
+                counter: Mutex::new(
+                    DEFAULT_COUNTERS
+                        .clone()
+                        .into_iter()
+                        .collect(),
+                ),
             }))
             // index route
             .service(index)
             // counter route
             .service(counter_handler)
             // static files
-            .service(actix_files::Files::new("/", "./src/static/").show_files_listing())
+            .service(
+                actix_files::Files::new("/", "./src/static/")
+                    .show_files_listing(),
+            )
     })
     .bind("0.0.0.0:8080")?
     .run()

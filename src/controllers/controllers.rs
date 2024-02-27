@@ -1,0 +1,51 @@
+use crate::{AppState, TEMPLATES};
+use actix_web::{get, Responder};
+
+#[get("/")]
+async fn index(state: actix_web::web::Data<AppState>) -> impl Responder {
+    let mut ctx = tera::Context::new();
+    ctx.insert(
+        "counter",
+        &*state.counter.lock().unwrap(),
+    );
+
+    let rendered = TEMPLATES
+        .render("index.html", &ctx)
+        .unwrap();
+
+    actix_web::HttpResponse::Ok().body(rendered)
+}
+
+#[get("/counter/{id}/{action}")]
+async fn counter_handler(
+    action: actix_web::web::Path<(String, String)>,
+    state: actix_web::web::Data<AppState>,
+) -> impl Responder {
+    let (id, action) = action.into_inner();
+
+    let mut ctx = tera::Context::new();
+
+    match action.as_str() {
+        "increment" => {
+            state.increment(&id);
+        }
+        "decrement" => {
+            state.decrement(&id);
+        }
+        _ => {
+            return actix_web::HttpResponse::BadRequest()
+                .body("Invalid action");
+        }
+    }
+
+    let counter = state.counter.lock().unwrap();
+    let count = counter.get(&id).unwrap_or(&0);
+    ctx.insert("count", count);
+    ctx.insert("id", &id);
+
+    let rendered = TEMPLATES
+        .render("counter.html", &ctx)
+        .unwrap();
+
+    actix_web::HttpResponse::Ok().body(rendered)
+}
