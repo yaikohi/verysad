@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  @apply text-zinc-900;
-}
-
 body {
   z-index: 0;
   background-image: url('./pixelart-dog-pattern.jpg');

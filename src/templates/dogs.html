@@ -1,0 +1,19 @@
+{% extends 'base.html' %} {% block title %} verysad {% endblock %} {% block
+content %}
+
+<div class="bg-violet-300 rounded-md p-4">
+  <h1>dogs</h1>
+</div>
+<div class="bg-violet-300 rounded-md p-4">
+  <p>you can look at dogs and add new dogs here</p>
+</div>
+<ul class="flex bg-violet-300 rounded-md py-4 flex-col gap-2">
+  {% for dog in dogs %}
+  <li class="bg-violet-200  p-2 rounded-md flex flex-row justify-between">
+    <span> {{ dog.name }} is a {{ dog.breed }} </span>
+    <button>Add</button>
+  </li>
+  {% endfor %}
+</ul>
+
+{% endblock%}

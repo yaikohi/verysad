@@ -2,7 +2,7 @@ mod controllers;
 
 use actix_web::{web, HttpServer};
 use color_eyre::eyre::Result;
-use controllers::controllers::{counter_handler, index};
+use controllers::controllers::{counter_handler, dogs_handler, index};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Mutex};
@@ -13,16 +13,24 @@ lazy_static! {
         match Tera::new("src/templates/**/*") {
             Ok(t) => t,
             Err(e) => {
-                println!("Template parsing error(s): {e}");
+                println!("--> Template parsing error(s):\n---> {e}");
                 ::std::process::exit(1);
             }
         }
     };
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Dog {
+    name: String,
+    breed: String,
+}
+
 #[derive(Serialize, Deserialize)]
 struct AppState {
+    // --- Read more about Arc & Mutex here: https://reintech.io/blog/understanding-implementing-rust-arc-mutex
     counter: Mutex<HashMap<String, i32>>,
+    dogs: Dog
 }
 
 impl AppState {
@@ -52,6 +60,13 @@ impl AppState {
 lazy_static! {
     static ref DEFAULT_COUNTERS: Vec<(String, i32)> =
         vec![("c1".to_string(), 0), ("c2".to_string(), 10)];
+//     static ref DEFAULT_DOGS: Vec<(String, Dog)> = vec![(
+//         "1".to_string(),
+//         Dog {
+//             name: "Bo".to_string(),
+//             breed: "Leonberger".to_string()
+//         }
+//     )];
 }
 
 #[actix_web::main]
@@ -68,11 +83,14 @@ async fn main() -> Result<()> {
                         .into_iter()
                         .collect(),
                 ),
+                dogs: Dog{name: "bo".to_string(), breed: "leonberger".to_string()}
             }))
             // index route
             .service(index)
             // counter route
             .service(counter_handler)
+            // dog
+            .service(dogs_handler)
             // static files
             .service(
                 actix_files::Files::new("/", "./src/static/")
